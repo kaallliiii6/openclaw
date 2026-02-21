@@ -169,6 +169,55 @@ function removeNthFromNonDuplicates(refs: RoleRefMap, tracker: RoleNameTracker) 
   }
 }
 
+function appendSnapshotSuffix(
+  line: string,
+  suffix: string,
+  options?: { interactiveOnly?: boolean },
+) {
+  if (!suffix) {
+    return line;
+  }
+  if (options?.interactiveOnly && !suffix.includes("[")) {
+    return line;
+  }
+  return `${line}${suffix}`;
+}
+
+function formatRefLine(
+  prefix: string,
+  roleRaw: string,
+  name: string | undefined,
+  ref: string,
+  nth: number,
+) {
+  let enhanced = `${prefix}${roleRaw}`;
+  if (name) {
+    enhanced += ` "${name}"`;
+  }
+  enhanced += ` [ref=${ref}]`;
+  if (nth > 0) {
+    enhanced += ` [nth=${nth}]`;
+  }
+  return enhanced;
+}
+
+function registerRoleRef(
+  refs: RoleRefMap,
+  tracker: RoleNameTracker,
+  role: string,
+  name: string | undefined,
+  ref: string,
+) {
+  const nth = tracker.getNextIndex(role, name);
+  tracker.trackRef(role, name, ref);
+  refs[ref] = {
+    role,
+    name,
+    nth,
+  };
+  return nth;
+}
+
 function compactTree(tree: string) {
   const lines = tree.split("\n");
   const result: string[] = [];
@@ -244,26 +293,8 @@ function processLine(
   }
 
   const ref = nextRef();
-  const nth = tracker.getNextIndex(role, name);
-  tracker.trackRef(role, name, ref);
-  refs[ref] = {
-    role,
-    name,
-    nth,
-  };
-
-  let enhanced = `${prefix}${roleRaw}`;
-  if (name) {
-    enhanced += ` "${name}"`;
-  }
-  enhanced += ` [ref=${ref}]`;
-  if (nth > 0) {
-    enhanced += ` [nth=${nth}]`;
-  }
-  if (suffix) {
-    enhanced += suffix;
-  }
-  return enhanced;
+  const nth = registerRoleRef(refs, tracker, role, name, ref);
+  return appendSnapshotSuffix(formatRefLine(prefix, roleRaw, name, ref, nth), suffix);
 }
 
 export function parseRoleRef(raw: string): string | null {
@@ -306,26 +337,12 @@ export function buildRoleSnapshotFromAriaSnapshot(
       }
 
       const ref = nextRef();
-      const nth = tracker.getNextIndex(role, name);
-      tracker.trackRef(role, name, ref);
-      refs[ref] = {
-        role,
-        name,
-        nth,
-      };
-
-      let enhanced = `- ${roleRaw}`;
-      if (name) {
-        enhanced += ` "${name}"`;
-      }
-      enhanced += ` [ref=${ref}]`;
-      if (nth > 0) {
-        enhanced += ` [nth=${nth}]`;
-      }
-      if (suffix.includes("[")) {
-        enhanced += suffix;
-      }
-      result.push(enhanced);
+      const nth = registerRoleRef(refs, tracker, role, name, ref);
+      result.push(
+        appendSnapshotSuffix(formatRefLine("- ", roleRaw, name, ref, nth), suffix, {
+          interactiveOnly: true,
+        }),
+      );
     }
 
     removeNthFromNonDuplicates(refs, tracker);
