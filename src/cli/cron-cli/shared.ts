@@ -5,6 +5,7 @@ import type { CronJob, CronSchedule } from "../../cron/types.js";
 import { formatDurationHuman } from "../../infra/format-time/format-duration.ts";
 import { defaultRuntime } from "../../runtime.js";
 import { colorize, isRich, theme } from "../../terminal/theme.js";
+import type { ThemeColor } from "../../terminal/theme.js";
 import type { GatewayRpcOpts } from "../gateway-rpc.js";
 import { callGatewayFromCli } from "../gateway-rpc.js";
 
@@ -156,6 +157,19 @@ const formatStatus = (job: CronJob) => {
   return job.state.lastStatus ?? "idle";
 };
 
+const getStatusTheme = (status: string): ThemeColor => {
+  if (status === "ok") {
+    return theme.success;
+  }
+  if (status === "error") {
+    return theme.error;
+  }
+  if (status === "running") {
+    return theme.warn;
+  }
+  return theme.muted;
+};
+
 export function printCronList(jobs: CronJob[], runtime = defaultRuntime) {
   if (jobs.length === 0) {
     runtime.log("No cron jobs.");
@@ -194,21 +208,7 @@ export function printCronList(jobs: CronJob[], runtime = defaultRuntime) {
     const targetLabel = pad(job.sessionTarget ?? "-", CRON_TARGET_PAD);
     const agentLabel = pad(truncate(job.agentId ?? "default", CRON_AGENT_PAD), CRON_AGENT_PAD);
 
-    const coloredStatus = (() => {
-      if (statusRaw === "ok") {
-        return colorize(rich, theme.success, statusLabel);
-      }
-      if (statusRaw === "error") {
-        return colorize(rich, theme.error, statusLabel);
-      }
-      if (statusRaw === "running") {
-        return colorize(rich, theme.warn, statusLabel);
-      }
-      if (statusRaw === "skipped") {
-        return colorize(rich, theme.muted, statusLabel);
-      }
-      return colorize(rich, theme.muted, statusLabel);
-    })();
+    const coloredStatus = colorize(rich, getStatusTheme(statusRaw), statusLabel);
 
     const coloredTarget =
       job.sessionTarget === "isolated"
