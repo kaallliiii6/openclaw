@@ -1224,7 +1224,7 @@ describe("QmdMemoryManager", () => {
   it("throws when sqlite index is busy", async () => {
     const { manager } = await createManager();
     const inner = manager as unknown as {
-      db: { prepare: () => { get: () => never }; close: () => void } | null;
+      db: { prepare: () => { all: () => never }; close: () => void } | null;
       resolveDocLocation: (docid?: string) => Promise<unknown>;
     };
     inner.db = {

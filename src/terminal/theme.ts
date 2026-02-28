@@ -10,6 +10,8 @@ const baseChalk = process.env.NO_COLOR && !hasForceColor ? new Chalk({ level: 0 
 
 const hex = (value: string) => baseChalk.hex(value);
 
+export type ThemeColor = (value: string) => string;
+
 export const theme = {
   accent: hex(LOBSTER_PALETTE.accent),
   accentBright: hex(LOBSTER_PALETTE.accentBright),
