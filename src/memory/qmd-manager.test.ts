@@ -902,11 +902,17 @@ describe("QmdMemoryManager", () => {
     const searchAndQueryCalls = spawnMock.mock.calls
       .map((call: unknown[]) => call[1] as string[])
       .filter((args: string[]) => args[0] === "search" || args[0] === "query");
-    expect(searchAndQueryCalls).toEqual([
-      ["search", "test", "--json", "-n", String(maxResults), "-c", "workspace-main"],
-      ["query", "test", "--json", "-n", String(maxResults), "-c", "workspace-main"],
-      ["query", "test", "--json", "-n", String(maxResults), "-c", "notes-main"],
-    ]);
+    // With parallel execution, we try search on both collections first.
+    // When those fail (or one fails and triggers fallback), we retry with query on both.
+    expect(searchAndQueryCalls).toEqual(
+      expect.arrayContaining([
+        ["search", "test", "--json", "-n", String(maxResults), "-c", "workspace-main"],
+        ["search", "test", "--json", "-n", String(maxResults), "-c", "notes-main"],
+        ["query", "test", "--json", "-n", String(maxResults), "-c", "workspace-main"],
+        ["query", "test", "--json", "-n", String(maxResults), "-c", "notes-main"],
+      ]),
+    );
+    expect(searchAndQueryCalls).toHaveLength(4);
     await manager.close();
   });
 
